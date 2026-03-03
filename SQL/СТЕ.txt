@@ -1,0 +1,59 @@
+-----
+select  case when t.user_id is null then 'Вне сегмента' else 'Наш сегмент' end as nflag_seg
+        , avg (class_end_datetime - class_start_datetime) avg_len
+        , count (*) cnt
+from eng_db.classes c
+    left join (select user_id
+              from eng_db.payments
+              where status_name = 'success'
+              group by user_id
+              having count (*) > 3
+              and avg (classes) > 25
+              ) t
+         on c.user_id = t.user_id
+where date_trunc ('year' , class_start_datetime) = '2016-01-01'
+        and class_end_datetime - class_start_datetime between interval '20 minute' 
+        and interval '3 hour'
+group by nflag_seg
+----
+with multiple_drivers as
+    (select id_driver
+    from taxi.airport_visit
+    group by id_driver
+    having count(*) > 1
+    ),
+top_waiters as
+    (select id_driver
+          , avg(time_left - time_came) avg_stay
+    from taxi.airport_visit
+    where id_driver in (select * from multiple_drivers)
+    group by id_driver
+    order by avg_stay desc
+    limit 10
+    )
+select left_w_order
+     , count(*) as cnt
+from taxi.airport_visit
+where id_driver in (select id_driver from top_waiters)
+group by left_w_order
+
+----
+with big_ports as
+    (select id_port
+     from taxi.airport_visit
+     group by id_port
+     having count(*) > 100
+    ),
+exper_drivers as
+    (select id_driver
+     from taxi.airport_visit
+     group by id_driver
+     having sum(time_left - time_came) > interval '12 hour'
+    )
+select sum(left_w_order)::float / count(*) as share_success
+     , avg(time_left - time_came) as avg_len
+from taxi.airport_visit
+where id_port in (select * from big_ports)
+  and id_driver in (select * from exper_drivers)
+order by share_success desc
+       , avg_len asc

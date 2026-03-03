@@ -1,0 +1,58 @@
+----
+select  id_client
+        , age
+        , amt_loan 
+    from bank.late_collection_clients
+    where credit_type = 'CC'
+        and age <= 25
+        and cellphone is null
+        order by amt_loan desc
+    limit 25
+----
+select id_client
+    from bank.late_collection_clients
+    where age >= 55
+        and credit_type = 'TOP-UP'
+        and amt_loan <= 100000
+        and is_active = 1
+        and cellphone is not null
+    order by amt_loan
+    limit 25
+----
+select *
+    from bank.late_collection_clients
+    where amt_loan between 250000 and 500000
+        and credit_type != 'TOP-UP'
+        and credit_type not like '%POS%'
+    order by amt_loan desc
+    limit 50
+---
+select  id_class
+      , id_teacher
+      , user_id
+      , class_start_datetime
+      , class_end_datetime
+      , class_end_datetime - class_start_datetime as len_lesson
+from eng_db.classes
+      where date_part('year', class_start_datetime) = 2016
+      and date_part('month', class_start_datetime) in (1, 2, 3) 
+      and class_status = 'success'
+      order by len_lesson desc
+      limit 30
+-----
+select id_class 
+     , class_start_datetime
+     , class_type
+     , case when date_part ('HOUR', class_start_datetime) between '7' and '9' then 'Утро'
+       when date_part ('HOUR', class_start_datetime) between '17' and '19' then 'Вечер'
+       else 'День' end as time_of_day
+from eng_db.classes
+where class_end_datetime > class_start_datetime
+  and class_type is not null
+  and date_part('year', class_start_datetime) = 2016
+  and date_part('day', class_start_datetime) > 1
+  and (date_part('HOUR', class_start_datetime) between 7 and 9 
+       or date_part('HOUR', class_start_datetime) between 17 and 19)
+       and date_part('minute', class_start_datetime) between '0' and '59'
+order by class_start_datetime asc
+   limit 100

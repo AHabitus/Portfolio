@@ -1,0 +1,72 @@
+----
+select  month_added
+        , avg (score) as avg_score
+from music.singer_list
+where month_info = '2021-03-01'
+        and cnt_playlist >= 170
+group by month_added
+order by month_added
+----
+select  round(score) as r_score
+        , sum(cnt_song_top_chart) as sum_cnt_song_top_chart
+        , count(singer_id) as cnt_singer
+from music.singer_list
+where month_info = '2021-03-01'
+group by round(score)
+having count(singer_id) > 10
+order by r_score
+----
+select  month_added
+        , sum(case when cnt_song_top_chart > 7 then 1.0 else 0.0 end) / count(*) as share_cnt_7
+        , sum(case when cnt_playlist > 100 then 1.0 else 0.0 end) / count (*) as share_cnt_100
+from music.singer_list
+where month_info = '2021-03-01'
+group by month_added
+having count (*) > 7
+order by month_added
+----
+select case when t2."averageRating" < 2.5 then '0-2.5'
+            when t2."averageRating" < 4 then '2.5-4'
+            when t2."averageRating" < 5.5 then '4-5.5'
+            when t2."averageRating" < 7 then '5.5-7'
+            when t2."averageRating" < 8.5 then '7-8.5'
+            else '8.5+' end rating_bin
+        , count (*) cnt_title
+from imdb.title_basics t1
+    left join imdb.title_ratings t2
+        on t1.tconst = t2.tconst
+where t1."isAdult" = true
+    and t2."averageRating" is not null
+    and t1."startYear" >= 1975
+group by rating_bin
+order by rating_bin
+----
+select id_client
+        , amt_loan as amt
+        , amt_loan * 0.9 as reserve_amt
+from bank.late_collection_clients a
+    join bank.region_dict b
+        on a.id_city = b.id_city
+where name_city = 'Москва'
+    and amt_loan is not null
+union all
+select id_client
+        , amt_credit as amt
+        , amt_credit * 0.6 as reserve_amt 
+from bank.early_collection_clients a
+    join bank.region_dict b
+        on a.id_city = b.id_city
+where name_city = 'Москва'
+    and amt_credit is not null
+----
+SELECT  date_trunc('month', dtime_purchase) as month_purchase
+        , type
+        , sum (price) as revenue
+from purchases pp
+	join products_price_log ppl
+		on pp.id_product = ppl.id__product
+        	and dtime_purchase BETWEEN dttm_from AND dttm_to	
+	join product_list pl
+    	on pl.id_product = pp.id_product
+group by month_purchase, type
+ORDER by month_purchase, type
